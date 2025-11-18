@@ -1,6 +1,9 @@
 import pandas as pd
 import seaborn as sb
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import plotly.express as px
 import time as t
 import sklearn.utils as u
 import sklearn.preprocessing as pp
@@ -14,81 +17,69 @@ import numpy as np
 import warnings as w
 w.filterwarnings('ignore')
 data = pd.read_csv("AI-Data.csv")
-# ---- NEW FEATURE: Correlation Heatmap ----
-plt.figure(figsize=(12, 8))
-sb.heatmap(data.corr(numeric_only=True), annot=True, cmap="coolwarm")
-plt.title("Correlation Heatmap")
-plt.show()
-# -----------------------------------------
-ch = 0
-while(ch != 10):
-    print("1.Marks Class Count Graph\t2.Marks Class Semester-wise Graph\n3.Marks Class Gender-wise Graph\t4.Marks Class Nationality-wise Graph\n5.Marks Class Grade-wise Graph\t6.Marks Class Section-wise Graph\n7.Marks Class Topic-wise Graph\t8.Marks Class Stage-wise Graph\n9.Marks Class Absent Days-wise\t10.No Graph\n")
-    ch = int(input("Enter Choice: "))
-    if (ch == 1):
-        print("Loading Graph....\n")
-        t.sleep(1)
-        print("\tMarks Class Count Graph")
-        axes = sb.countplot(x='Class', data=data, order=['L', 'M', 'H'])
-        plt.show()
-    elif (ch == 2):
-        print("Loading Graph....\n")
-        t.sleep(1)
-        print("\tMarks Class Semester-wise Graph")
-        fig, axesarr = plt.subplots(1, figsize=(10, 6))
-        sb.countplot(x='Semester', hue='Class', data=data, hue_order=['L', 'M', 'H'], axes=axesarr)
-        plt.show()
-    elif (ch == 3):
-        print("Loading Graph..\n")
-        t.sleep(1)
-        print("\tMarks Class Gender-wise Graph")
-        fig, axesarr = plt.subplots(1, figsize=(10, 6))
-        sb.countplot(x='gender', hue='Class', data=data, order=['M', 'F'], hue_order=['L', 'M', 'H'], axes=axesarr)
-        plt.show()
-    elif (ch == 4):
-        print("Loading Graph..\n")
-        t.sleep(1)
-        print("\tMarks Class Nationality-wise Graph")
-        fig, axesarr = plt.subplots(1, figsize=(10, 6))
-        sb.countplot(x='NationalITy', hue='Class', data=data, hue_order=['L', 'M', 'H'], axes=axesarr)
-        plt.show()
-    elif (ch == 5):
-        print("Loading Graph: \n")
-        t.sleep(1)
-        print("\tMarks Class Grade-wise Graph")
-        fig, axesarr = plt.subplots(1, figsize=(10, 6))
-        sb.countplot(x='GradeID', hue='Class', data=data, order=['G-02', 'G-04', 'G-05', 'G-06', 'G-07', 'G-08', 'G-09', 'G-10', 'G-11', 'G-12'], hue_order = ['L', 'M', 'H'], axes=axesarr)
-        plt.show()
-    elif (ch ==6):
-        print("Loading Graph..\n")
-        t.sleep(1)
-        print("\tMarks Class Section-wise Graph")
-        fig, axesarr = plt.subplots(1, figsize=(10, 6))
-        sb.countplot(x='SectionID', hue='Class', data=data, hue_order = ['L', 'M', 'H'], axes=axesarr)
-        plt.show()
-    elif (ch == 7):
-        print("Loading Graph..\n")
-        t.sleep(1)
-        print("\tMarks Class Topic-wise Graph")
-        fig, axesarr = plt.subplots(1, figsize=(10, 6))
-        sb.countplot(x='Topic', hue='Class', data=data, hue_order = ['L', 'M', 'H'], axes=axesarr)
-        plt.show()
-    elif (ch == 8):
-        print("Loading Graph..\n")
-        t.sleep(1)
-        print("\tMarks Class Stage-wise Graph")
-        fig, axesarr = plt.subplots(1, figsize=(10, 6))
-        sb.countplot(x='StageID', hue='Class', data=data, hue_order = ['L', 'M', 'H'], axes=axesarr)
-        plt.show()
-    elif (ch == 9):
-        print("Loading Graph..\n")
-        t.sleep(1)
-        print("\tMarks Class Absent Days-wise Graph")
-        fig, axesarr = plt.subplots(1, figsize=(10, 6))
-        sb.countplot(x='StudentAbsenceDays', hue='Class', data=data, hue_order = ['L', 'M', 'H'], axes=axesarr)
-        plt.show()
-if(ch == 10):
-    print("Exiting..\n")
-    t.sleep(1)
+# Create interactive plotly subplots - 3 graphs per row
+fig = make_subplots(
+    rows=4, cols=3,
+    subplot_titles=('Correlation Heatmap', 'Class Count', 'Semester-wise',
+                   'Gender-wise', 'Nationality-wise', 'Grade-wise', 
+                   'Section-wise', 'Topic-wise', 'Stage-wise',
+                   'Absent Days-wise', '', ''),
+    specs=[[{"type": "heatmap"}, {"type": "bar"}, {"type": "bar"}],
+           [{"type": "bar"}, {"type": "bar"}, {"type": "bar"}],
+           [{"type": "bar"}, {"type": "bar"}, {"type": "bar"}],
+           [{"type": "bar"}, {}, {}]]
+)
+
+# 1. Correlation Heatmap
+corr_matrix = data.corr(numeric_only=True)
+fig.add_trace(go.Heatmap(z=corr_matrix.values, x=corr_matrix.columns, y=corr_matrix.index, colorscale='RdBu'), row=1, col=1)
+
+# 2. Class Count
+class_counts = data['Class'].value_counts().reindex(['L', 'M', 'H'])
+fig.add_trace(go.Bar(x=class_counts.index, y=class_counts.values, name='Class Count'), row=1, col=2)
+
+# 3. Semester-wise
+sem_class = data.groupby(['Semester', 'Class']).size().unstack(fill_value=0)
+for cls in ['L', 'M', 'H']:
+    fig.add_trace(go.Bar(x=sem_class.index, y=sem_class[cls], name=f'Class {cls}', showlegend=False), row=1, col=3)
+
+# 4. Gender-wise
+gender_class = data.groupby(['gender', 'Class']).size().unstack(fill_value=0)
+for cls in ['L', 'M', 'H']:
+    fig.add_trace(go.Bar(x=gender_class.index, y=gender_class[cls], name=f'Class {cls}', showlegend=False), row=2, col=1)
+
+# 5. Nationality-wise
+nat_class = data.groupby(['NationalITy', 'Class']).size().unstack(fill_value=0)
+for cls in ['L', 'M', 'H']:
+    fig.add_trace(go.Bar(x=nat_class.index, y=nat_class[cls], name=f'Class {cls}', showlegend=False), row=2, col=2)
+
+# 6. Grade-wise
+grade_class = data.groupby(['GradeID', 'Class']).size().unstack(fill_value=0)
+for cls in ['L', 'M', 'H']:
+    fig.add_trace(go.Bar(x=grade_class.index, y=grade_class[cls], name=f'Class {cls}', showlegend=False), row=2, col=3)
+
+# 7. Section-wise
+sec_class = data.groupby(['SectionID', 'Class']).size().unstack(fill_value=0)
+for cls in ['L', 'M', 'H']:
+    fig.add_trace(go.Bar(x=sec_class.index, y=sec_class[cls], name=f'Class {cls}', showlegend=False), row=3, col=1)
+
+# 8. Topic-wise
+topic_class = data.groupby(['Topic', 'Class']).size().unstack(fill_value=0)
+for cls in ['L', 'M', 'H']:
+    fig.add_trace(go.Bar(x=topic_class.index, y=topic_class[cls], name=f'Class {cls}', showlegend=False), row=3, col=2)
+
+# 9. Stage-wise
+stage_class = data.groupby(['StageID', 'Class']).size().unstack(fill_value=0)
+for cls in ['L', 'M', 'H']:
+    fig.add_trace(go.Bar(x=stage_class.index, y=stage_class[cls], name=f'Class {cls}', showlegend=False), row=3, col=3)
+
+# 10. Absent Days-wise
+absent_class = data.groupby(['StudentAbsenceDays', 'Class']).size().unstack(fill_value=0)
+for cls in ['L', 'M', 'H']:
+    fig.add_trace(go.Bar(x=absent_class.index, y=absent_class[cls], name=f'Class {cls}', showlegend=False), row=4, col=1)
+
+fig.update_layout(height=1200, title_text="Student Performance Analysis - All Visualizations")
+fig.show()
 #cor = data.corr()
 #print(cor)
 data = data.drop("gender", axis=1)
@@ -178,7 +169,7 @@ for a,b in zip(lbls_Test, lbls_predL):
 accL = countL/len(lbls_Test)
 print("\nAccuracy measures using Linear Model Logistic Regression:")
 print(m.classification_report(lbls_Test, lbls_predL),"\n")
-print("\nAccuracy using Linear Model Logistic Regression: ", str(round(accP, 3)), "\n")
+print("\nAccuracy using Linear Model Logistic Regression: ", str(round(accL, 3)), "\n")
 t.sleep(1)
 modelN = nn.MLPClassifier(activation="logistic")
 modelN.fit(feats_Train, lbls_Train)
